@@ -1,0 +1,45 @@
+# SHABD production configuration — the single control surface.
+# Copy to config.yaml and edit. Every heavy dependency has a built-in
+# (pure-Python, no Docker) option and an external option — you choose here.
+# See docs/PRODUCTION-READINESS.md.
+
+shabd:
+  name: ccil-control-plane
+  # Where the signing secret comes from — never inline in prod.
+  secret_source:
+    provider: env            # env | file | inline
+    key: SHABD_SECRET
+
+identity:
+  provider: builtin          # builtin (Praman) | keycloak
+  builtin:
+    issuer: https://shabd.ccil.internal
+    token_alg: HS256         # HS256 (internal) | RS256 (JWKS, external verify)
+    access_ttl: 900
+    refresh_ttl: 28800
+    password_policy:
+      min_len: 12
+  keycloak:                  # used only when provider: keycloak
+    server_url: https://keycloak.ccil.internal
+    realm: ccil
+    client_id: shabd
+
+cache:
+  provider: builtin          # builtin (in-process) | smriti (own server) | redis
+  smriti:
+    host: 127.0.0.1
+    port: 6390
+  redis:
+    url: redis://redis.ccil.internal:6379
+
+persistence:
+  provider: jsonl            # jsonl | sqlite | postgres
+  encrypted: true
+
+server:
+  tls:
+    cert: /etc/shabd/tls.crt
+    key: /etc/shabd/tls.key
+  security_headers: true
+  cors:
+    allow_origins: []

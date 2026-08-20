@@ -1,0 +1,51 @@
+# SHABD microservices — each service is its OWN container.
+# Restart/redeploy any one of them without touching the others.
+#
+#   docker compose -f docker-compose.microservices.yml up --build
+#
+# Frontend (dev): run `npm run dev` in ./frontend, or add an nginx service
+# to serve ./frontend/dist in production.
+services:
+  users:
+    build: ./backend
+    environment: [SERVICE=users, USERS_PORT=8003]
+    ports: ["8003:8003"]
+    volumes: ["shabd-data:/app/../shared/data", "shabd-secret:/app/../shared"]
+
+  spells:
+    build: ./backend
+    environment: [SERVICE=spells, SPELLS_PORT=8001]
+    ports: ["8001:8001"]
+    volumes: ["shabd-data:/app/../shared/data", "shabd-secret:/app/../shared"]
+
+  notary:
+    build: ./backend
+    environment: [SERVICE=notary, NOTARY_PORT=8002, "SPELLS_URL=http://spells:8001"]
+    ports: ["8002:8002"]
+    depends_on: [spells]
+
+  agent:
+    build: ./backend
+    environment:
+      - SERVICE=agent
+      - AGENT_PORT=8004
+      - OLLAMA_BASE_URL=https://ollama.com/v1
+      - OLLAMA_MODEL=gpt-oss:20b
+      # set OLLAMA_API_KEY via a .env file or your secret manager
+    ports: ["8004:8004"]
+
+  gateway:
+    build: ./backend
+    environment:
+      - SERVICE=gateway
+      - GATEWAY_PORT=8000
+      - USERS_URL=http://users:8003
+      - SPELLS_URL=http://spells:8001
+      - NOTARY_URL=http://notary:8002
+      - AGENT_URL=http://agent:8004
+    ports: ["8000:8000"]
+    depends_on: [users, spells, notary, agent]
+
+volumes:
+  shabd-data:
+  shabd-secret:

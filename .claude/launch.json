@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "frontend",
+      "port": 5173
+    },
+    {
+      "name": "legacy-ui",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["shabd_ui.py", "--port", "8090", "--foreground"],
+      "port": 8090,
+      "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+    }
+  ]
+}

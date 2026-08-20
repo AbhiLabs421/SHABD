@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: shabd
+    metrics_path: /metrics
+    params:
+      format: [prom]
+    static_configs:
+      - targets: ["shabd:8765"]

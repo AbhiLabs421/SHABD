@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shabd"
+version = "2.31.0"
+description = "The complete AI-function framework for Python — expose functions to AI agents with built-in security, caching, an HTTP server, and full MCP support. Single file, zero dependencies."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Shanti" },
+    { name = "Abhishek", email = "ipsabhi423@gmail.com" },
+]
+keywords = [
+    "mcp", "model-context-protocol", "ai", "llm", "tools",
+    "function-calling", "claude", "ollama", "agent",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []   # zero runtime dependencies — pure standard library
+
+[project.optional-dependencies]
+redis   = ["redis>=4.0"]                   # distributed RedisPlugin
+yaml    = ["pyyaml>=6.0"]                  # YAML config files
+fastapi = ["fastapi>=0.100", "uvicorn>=0.23"]  # optional FastAPI front-end
+dev     = ["pyyaml>=6.0"]
+
+[project.urls]
+Homepage   = "https://github.com/Kumar123ips/SHABD"
+Repository = "https://github.com/Kumar123ips/SHABD"
+Issues     = "https://github.com/Kumar123ips/SHABD/issues"
+
+[tool.setuptools]
+py-modules = ["shabd", "shabd_client", "shabd_enterprise", "shabd_agent", "shabd_orchestrator", "shabd_notary", "shabd_ui", "shabd_ui_cli", "shabd_users", "shabd_fastapi", "shabd_studio", "shabd_praman", "shabd_rsa", "shabd_smriti", "shabd_config", "shabd_verify"]
+packages = ["shabd_packs"]

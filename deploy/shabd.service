@@ -1,0 +1,50 @@
+# /etc/systemd/system/shabd.service
+#
+# Production-ready systemd unit. Drop into /etc/systemd/system/, then:
+#
+#     sudo systemctl daemon-reload
+#     sudo systemctl enable --now shabd
+#     sudo journalctl -u shabd -f
+
+[Unit]
+Description=SHABD — Spell Hub for Agentic Builders & Developers
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shabd
+Group=shabd
+WorkingDirectory=/opt/shabd
+
+# Production secrets via systemd credentials — never expose them on the
+# command line. Provision /etc/shabd/secret with `chmod 600`.
+EnvironmentFile=/etc/shabd/env
+# Example /etc/shabd/env:
+#   SHABD_SECRET=<32+ random bytes>
+#   SHABD_LOG_LEVEL=INFO
+
+ExecStart=/usr/bin/python3 /opt/shabd/server.py
+
+# Graceful shutdown — SIGTERM, drain up to 30s.
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+
+Restart=on-failure
+RestartSec=5s
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/var/lib/shabd
+
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

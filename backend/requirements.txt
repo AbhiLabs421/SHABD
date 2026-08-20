@@ -1,0 +1,6 @@
+# SHABD backend microservices.
+# The SHABD core library itself is zero-dependency stdlib; these are only for
+# the FastAPI service wrappers + inter-service HTTP.
+fastapi>=0.110
+uvicorn[standard]>=0.27
+httpx>=0.27

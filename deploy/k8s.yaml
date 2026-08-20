@@ -1,0 +1,121 @@
+# SHABD on Kubernetes — production manifest
+#
+# Apply:
+#   kubectl apply -f deploy/k8s.yaml
+#
+# The Deployment uses readiness + liveness + startup probes that map to
+# SHABD's /readyz, /healthz, /startupz endpoints, plus a graceful shutdown
+# hook so that pod rollouts drain in-flight requests cleanly.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shabd
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shabd-secret
+  namespace: shabd
+type: Opaque
+stringData:
+  # Replace with: openssl rand -hex 32
+  SHABD_SECRET: "CHANGE-ME-32-byte-secret-or-longer-please"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shabd-audit
+  namespace: shabd
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shabd
+  namespace: shabd
+  labels: { app: shabd }
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels: { app: shabd }
+  template:
+    metadata:
+      labels: { app: shabd }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8765"
+        prometheus.io/param_format: "prom"
+    spec:
+      terminationGracePeriodSeconds: 45  # >= shutdown_grace_s in serve()
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: shabd
+        image: shabd:2.2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - { name: http, containerPort: 8765 }
+        env:
+        - name: SHABD_SECRET
+          valueFrom:
+            secretKeyRef: { name: shabd-secret, key: SHABD_SECRET }
+        - name: SHABD_LOG_LEVEL
+          value: INFO
+        volumeMounts:
+        - { name: audit, mountPath: /data }
+        startupProbe:
+          httpGet: { path: /startupz, port: http }
+          failureThreshold: 30
+          periodSeconds: 1
+        readinessProbe:
+          httpGet: { path: /readyz, port: http }
+          periodSeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet: { path: /healthz, port: http }
+          periodSeconds: 10
+          timeoutSeconds: 3
+        resources:
+          requests: { cpu: "200m", memory: "128Mi" }
+          limits:   { cpu: "1",    memory: "512Mi" }
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: { drop: ["ALL"] }
+      volumes:
+      - name: audit
+        persistentVolumeClaim: { claimName: shabd-audit }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shabd
+  namespace: shabd
+spec:
+  selector: { app: shabd }
+  ports:
+  - { name: http, port: 8765, targetPort: http }
+  type: ClusterIP
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shabd
+  namespace: shabd
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: shabd }

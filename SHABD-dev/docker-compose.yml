@@ -1,0 +1,52 @@
+# SHABD — local compose stack with Prometheus + Grafana
+#
+# Spin up:
+#   docker compose up -d
+#
+# Then:
+#   http://localhost:8765/dashboard   (SHABD)
+#   http://localhost:9090             (Prometheus)
+#   http://localhost:3000             (Grafana, admin/admin)
+
+services:
+  shabd:
+    build: .
+    image: shabd:2.2
+    container_name: shabd
+    restart: unless-stopped
+    environment:
+      SHABD_SECRET: ${SHABD_SECRET:?set SHABD_SECRET in your .env file}
+      SHABD_LOG_LEVEL: INFO
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./audit:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8765/readyz', timeout=2).status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    # Graceful shutdown: send SIGTERM, give 30s for in-flight drain.
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
+
+  prometheus:
+    image: prom/prometheus:v3.0.0
+    container_name: shabd-prom
+    depends_on: [shabd]
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: shabd-grafana
+    depends_on: [prometheus]
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
